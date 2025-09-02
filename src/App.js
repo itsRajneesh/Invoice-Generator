@@ -1,25 +1,250 @@
-import logo from './logo.svg';
+import React, { useState, useEffect } from 'react';
+import '@fortawesome/fontawesome-free/css/all.min.css';
 import './App.css';
 
-function App() {
+const App = () => {
+  const [isDarkMode, setIsDarkMode] = useState(false);
+  const [items, setItems] = useState([{ description: '', price: '' }]);
+  const [clientName, setClientName] = useState('');
+  const [tax, setTax] = useState(0);
+  const [subtotal, setSubtotal] = useState(0);
+  const [taxAmount, setTaxAmount] = useState(0);
+  const [total, setTotal] = useState(0);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  useEffect(() => {
+    const newSubtotal = items.reduce((sum, item) => sum + (parseFloat(item.price) || 0), 0);
+    const newTaxAmount = newSubtotal * (tax / 100);
+    const newTotal = newSubtotal + newTaxAmount;
+    setSubtotal(newSubtotal);
+    setTaxAmount(newTaxAmount);
+    setTotal(newTotal);
+  }, [items, tax]);
+
+  const handleAddItem = () => {
+    setItems([...items, { description: '', price: '' }]);
+  };
+
+  const handleRemoveItem = (index) => {
+    const itemRow = document.getElementById(`item-${index}`);
+    if (itemRow) {
+      itemRow.classList.add('opacity-0', 'scale-y-0', 'transition-all', 'duration-300');
+      setTimeout(() => {
+        setItems(items.filter((_, i) => i !== index));
+      }, 300);
+    }
+  };
+
+  const handleItemChange = (index, field, value) => {
+    const newItems = items.map((item, i) => {
+      if (i === index) {
+        return { ...item, [field]: value };
+      }
+      return item;
+    });
+    setItems(newItems);
+  };
+
+  const handleSubmit = async (event) => {
+    event.preventDefault();
+    setIsSubmitting(true);
+
+    const formData = new FormData();
+    formData.append('client_name', clientName);
+    formData.append('tax', tax);
+    items.forEach(item => {
+      formData.append('items[]', item.description);
+      formData.append('prices[]', item.price);
+    });
+
+    // Debug form data
+    console.log('Form Data:', [...formData]);
+
+    try {
+      const response = await fetch('http://127.0.0.1:5000/', {
+        method: 'POST',
+        body: formData,
+      });
+
+      if (response.ok) {
+        const blob = await response.blob();
+        const contentDisposition = response.headers.get('Content-Disposition');
+        const filename = contentDisposition
+          ? contentDisposition.match(/filename="(.+)"/)[1]
+          : 'invoice.pdf';
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = filename;
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        window.URL.revokeObjectURL(url);
+      } else {
+        const errorText = await response.text();
+        console.error('PDF generation failed:', errorText);
+        document.getElementById('message-box').innerText = 'Error generating invoice. Please check your inputs.';
+        document.getElementById('message-box').style.display = 'block';
+        setTimeout(() => {
+          document.getElementById('message-box').style.display = 'none';
+        }, 5000);
+      }
+    } catch (error) {
+      console.error('Network or server error:', error);
+      document.getElementById('message-box').innerText = 'An error occurred. Please try again.';
+      document.getElementById('message-box').style.display = 'block';
+      setTimeout(() => {
+        document.getElementById('message-box').style.display = 'none';
+      }, 5000);
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const toggleDarkMode = () => {
+    setIsDarkMode(!isDarkMode);
+  };
+
   return (
-    <div className="App">
-      <header className="App-header">
-        <img src={logo} className="App-logo" alt="logo" />
-        <p>
-          Edit <code>src/App.js</code> and save to reload.
-        </p>
-        <a
-          className="App-link"
-          href="https://reactjs.org"
-          target="_blank"
-          rel="noopener noreferrer"
+    <div className={`${isDarkMode ? 'dark' : ''} bg-gray-100 dark:bg-black min-h-screen text-gray-800 dark:text-white transition-colors duration-500`}>
+      <div id="message-box" className="message-box"></div>
+      <div className="flex justify-end p-4">
+        <button
+          onClick={toggleDarkMode}
+          className="p-2 rounded-full bg-gray-200 dark:bg-gray-800 text-gray-800 dark:text-white shadow-md transition-all duration-300 hover:scale-110"
         >
-          Learn React
-        </a>
-      </header>
+          {isDarkMode ? (
+            <i className="fas fa-sun text-yellow-500"></i>
+          ) : (
+            <i className="fas fa-moon text-gray-500"></i>
+          )}
+        </button>
+      </div>
+      <main className="container mx-auto p-4 md:p-8 max-w-4xl">
+        <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-xl p-6 md:p-10 transform transition-transform duration-300">
+          <h1 className="text-3xl md:text-4xl font-extrabold text-center text-indigo-700 dark:text-indigo-400 mb-8">
+            <i className="fas fa-file-invoice-dollar mr-2"></i>Invoice Wizard
+          </h1>
+          <form onSubmit={handleSubmit} className="space-y-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div className="form-group animate-slideIn">
+                <label className="block text-sm font-semibold mb-2 dark:text-white">Client Name</label>
+                <input
+                  type="text"
+                  name="client_name"
+                  value={clientName}
+                  onChange={(e) => setClientName(e.target.value)}
+                  placeholder="E.g., Acmetronics Inc."
+                  className="w-full p-3 bg-gray-50 dark:bg-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 dark:text-white"
+                  required
+                />
+              </div>
+              <div className="form-group animate-slideIn">
+                <label className="block text-sm font-semibold mb-2 dark:text-white">Tax Rate (%)</label>
+                <input
+                  type="number"
+                  name="tax"
+                  value={tax}
+                  onChange={(e) => setTax(e.target.value)}
+                  min="0"
+                  placeholder="0"
+                  className="w-full p-3 bg-gray-50 dark:bg-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 dark:text-white"
+                  required
+                />
+              </div>
+            </div>
+            <hr className="my-8 border-gray-200 dark:border-gray-700" />
+            <div className="space-y-4">
+              <h2 className="text-xl font-bold text-gray-700 dark:text-white">Invoice Items</h2>
+              {items.map((item, index) => (
+                <div
+                  key={index}
+                  id={`item-${index}`}
+                  className="grid grid-cols-12 gap-3 p-4 bg-gray-50 dark:bg-gray-700 rounded-lg shadow-sm transition-all duration-300 ease-in-out dark:text-white"
+                >
+                  <div className="col-span-12 sm:col-span-7">
+                    <label className="sr-only">Item Description</label>
+                    <input
+                      type="text"
+                      name={`items[${index}]`}
+                      value={item.description}
+                      onChange={(e) => handleItemChange(index, 'description', e.target.value)}
+                      placeholder="Item Description"
+                      className="w-full p-2 bg-white dark:bg-gray-600 rounded-md text-sm focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                      required
+                    />
+                  </div>
+                  <div className="col-span-8 sm:col-span-4">
+                    <label className="sr-only">Price</label>
+                    <input
+                      type="number"
+                      name={`prices[${index}]`}
+                      value={item.price}
+                      onChange={(e) => handleItemChange(index, 'price', e.target.value)}
+                      min="0"
+                      step="0.01"
+                      placeholder="Price"
+                      className="w-full p-2 bg-white dark:bg-gray-600 rounded-md text-sm focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                      required
+                    />
+                  </div>
+                  <div className="col-span-4 sm:col-span-1 flex items-center justify-end">
+                    <button
+                      type="button"
+                      onClick={() => handleRemoveItem(index)}
+                      className="p-2 text-red-500 hover:text-red-700 transition-colors duration-300"
+                      disabled={items.length === 1}
+                    >
+                      <i className="fas fa-trash-alt"></i>
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+            <button
+              type="button"
+              onClick={handleAddItem}
+              className="px-4 py-2 bg-indigo-500 text-white rounded-lg shadow hover:bg-indigo-600 transition-transform duration-300 transform hover:scale-105"
+            >
+              <i className="fas fa-plus mr-2"></i>Add Item
+            </button>
+            <div className="mt-8 p-6 bg-gray-100 dark:bg-black rounded-xl shadow-inner">
+              <h3 className="text-lg font-bold mb-4 dark:text-white">Summary</h3>
+              <div className="flex justify-between items-center mb-2">
+                <span className="dark:text-white">Subtotal</span>
+                <span className="font-semibold dark:text-white">₹{subtotal.toFixed(2)}</span>
+              </div>
+              <div className="flex justify-between items-center mb-2">
+                <span className="dark:text-white">Tax ({tax}%)</span>
+                <span className="font-semibold dark:text-white">₹{taxAmount.toFixed(2)}</span>
+              </div>
+              <div className="flex justify-between items-center text-xl font-bold border-t pt-4 border-gray-300 dark:border-gray-600">
+                <span className="dark:text-white">Total</span>
+                <span className="text-indigo-600 dark:text-indigo-400">₹{total.toFixed(2)}</span>
+              </div>
+            </div>
+            <div className="mt-8">
+              <button
+                type="submit"
+                className="w-full py-4 bg-indigo-600 text-white font-bold rounded-xl shadow-lg hover:bg-indigo-700 transition-colors duration-300 transform hover:scale-105"
+                disabled={isSubmitting}
+              >
+                {isSubmitting ? (
+                  <>
+                    <i className="fas fa-spinner fa-spin mr-2"></i> Generating...
+                  </>
+                ) : (
+                  <>
+                    <i className="fas fa-file-pdf mr-2"></i> Generate PDF
+                  </>
+                )}
+              </button>
+            </div>
+          </form>
+        </div>
+      </main>
     </div>
   );
-}
+};
 
 export default App;
