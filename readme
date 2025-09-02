@@ -1,0 +1,224 @@
+Invoice Generator
+A web application to create and download professional invoices as PDFs. Built with a React frontend and a Flask backend, it allows users to input client details, add multiple items with prices, set tax rates, and generate invoices with unique invoice numbers stored in a SQLite database. Features include a responsive UI with dark mode, animations, and error handling. Deployed on Vercel (frontend) and PythonAnywhere (backend).
+Features
+
+Create invoices with client name, items, prices, and tax rate.
+Generate PDF invoices with unique invoice numbers.
+Responsive UI with dark mode toggle and smooth animations.
+Error handling with user-friendly messages.
+SQLite database to track invoice numbers.
+Deployable on Vercel (frontend) and PythonAnywhere (backend).
+
+Tech Stack
+
+Frontend: React, Tailwind CSS, Font Awesome
+Backend: Flask, WeasyPrint, SQLite, Flask-CORS
+Deployment: Vercel (frontend), PythonAnywhere (backend)
+
+Folder Structure
+invoice-generator/
+├── app.py                  # Flask backend code
+├── templates/
+│   └── invoice.html        # HTML template for PDF
+├── invoices.db             # SQLite database for invoice numbers
+├── frontend/
+│   ├── src/
+│   │   ├── App.js          # Main React component
+│   │   ├── App.css         # Styles with Tailwind CSS
+│   │   └── index.js        # React entry point
+│   ├── public/
+│   │   └── index.html      # HTML template with CDNs
+│   ├── tailwind.config.js  # Tailwind CSS configuration
+│   ├── postcss.config.js   # PostCSS configuration
+│   └── package.json        # Frontend dependencies
+
+Prerequisites
+
+Node.js (v16 or higher) for frontend.
+Python 3.10 for backend.
+Git for version control.
+GTK3 (Windows) for WeasyPrint.
+Accounts on GitHub, Vercel, and PythonAnywhere for deployment.
+
+Local Setup Instructions
+Backend (Flask)
+
+Navigate to the project directory:cd D:\Projects\Invoice Generator
+
+
+Create and activate a virtual environment:python -m venv venv
+.\venv\Scripts\Activate.ps1  # Windows
+
+
+Install dependencies:pip install flask flask-cors weasyprint
+
+
+Install GTK3 for WeasyPrint (Windows):
+Download and install from GTK3 Windows.
+Verify: python -c "import weasyprint; print(weasyprint.__version__)"
+
+
+Run the backend:python app.py
+
+
+Access at http://127.0.0.1:5000/ (should show "Backend ready").
+
+
+
+Frontend (React)
+
+Navigate to the frontend directory:cd D:\Projects\Invoice Generator\frontend
+
+
+Install dependencies:npm install
+
+
+Run the frontend:npm start
+
+
+Access at http://localhost:3000/.
+
+
+
+Test Locally
+
+Open http://localhost:3000/.
+Fill the form:
+Client Name: "Rahul Sharma"
+Item 1: "Website Design", Price: 5000
+Item 2: "Logo Design", Price: 2000
+Tax: 18
+
+
+Click "Generate PDF" to download invoice_1000.pdf.
+Check console (F12) for Form Data output and errors.
+
+Deployment Instructions
+Frontend (Vercel)
+
+Build Locally:cd D:\Projects\Invoice Generator\frontend
+npm run build
+
+
+Initialize Git:git init
+git add .
+git commit -m "Initial commit for frontend"
+
+
+Create .gitignore:echo "node_modules/
+build/
+.env" > .gitignore
+
+
+Push to GitHub:
+Create a repository (invoice-generator-frontend) on GitHub.
+Link and push:git remote add origin https://github.com/your-username/invoice-generator-frontend.git
+git push -u origin main
+
+
+
+
+Deploy on Vercel:
+Sign up at vercel.com.
+Create a new project, select the GitHub repo.
+Settings:
+Framework Preset: Create React App
+Build Command: npm run build
+Output Directory: build
+
+
+Deploy to get a URL (e.g., https://invoice-generator-frontend.vercel.app).
+
+
+
+Backend (PythonAnywhere)
+
+Create Zip:cd D:\Projects\Invoice Generator
+Compress-Archive -Path app.py,templates,invoices.db -DestinationPath backend.zip
+
+
+Setup PythonAnywhere:
+Sign up at pythonanywhere.com (free plan).
+In "Files" tab, create /home/your-username/invoice_generator/.
+Upload and extract backend.zip.
+
+
+Setup Virtual Environment:
+Open Bash console:mkvirtualenv --python=/usr/bin/python3.10 invoice_env
+pip install flask flask-cors weasyprint
+
+
+
+
+Update app.py:
+Edit /home/your-username/invoice_generator/app.py:def get_db():
+    conn = sqlite3.connect('/home/your-username/invoice_generator/invoices.db')
+    conn.row_factory = sqlite3.Row
+    return conn
+
+
+Replace your-username with your PythonAnywhere username.
+
+
+Configure WSGI:
+Edit /var/www/your_username_pythonanywhere_com_wsgi.py:import sys
+path = '/home/your-username/invoice_generator'
+if path not in sys.path:
+    sys.path.append(path)
+from app import app as application
+
+
+Replace your-username.
+
+
+Reload Web App:
+In "Web" tab, click "Reload".
+Test: https://your-username.pythonanywhere.com (shows "Backend ready").
+
+
+
+Update Frontend Fetch URL
+
+Update frontend/src/App.js:const response = await fetch('https://your-username.pythonanywhere.com/', {
+    method: 'POST',
+    body: formData,
+});
+
+
+Commit and push:git add src/App.js
+git commit -m "Update fetch URL for production"
+git push origin main
+
+
+Redeploy on Vercel.
+
+Testing Deployed App
+
+Frontend: Open Vercel URL (e.g., https://invoice-generator-frontend.vercel.app).
+Check UI: Dark mode, animations, form.
+Fill form and verify summary (Subtotal: ₹7000, Tax: ₹1260, Total: ₹8260).
+
+
+PDF Generation: Click "Generate PDF", check invoice_1000.pdf.
+Console: Open F12, verify Form Data output, check for errors.
+Database: Check /home/your-username/invoice_generator/invoices.db for invoice numbers.
+Edge Cases: Test empty fields, invalid prices, mobile view.
+
+Debugging
+
+CORS Error: Ensure CORS(app) in app.py. Reload PythonAnywhere app.
+PDF Issues: Test backend with:curl -X POST https://your-username.pythonanywhere.com -F "client_name=Rahul Sharma" -F "tax=18" -F "items[]=Website Design" -F "prices[]=5000" -F "items[]=Logo Design" -F "prices[]=2000" --output invoice.pdf
+
+
+Styles Missing: Verify App.css, CDNs in index.html.
+Logs: Check Vercel (Logs tab) and PythonAnywhere (Log files).
+
+License
+MIT
+
+Light Mode
+![alt text](public/{2E54F300-6052-4F29-9D76-7B962E86325C}.png)
+Dark Mode
+![alt text](public/{778FCEE4-8740-40CA-A42F-B8A2BA7C63A5}.png)
+Invoice Pdf
+![alt text](public/{C8E3AE55-C4F9-4C59-BDA1-3CEFB6BAC64C}.png)
